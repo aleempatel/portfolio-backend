@@ -110,6 +110,29 @@ const downloadResume = asyncHandler(async (_req, res) => {
   object.stream.pipe(res);
 });
 
+// GET /api/profile/resume/view  (public)
+// Same as downloadResume, but streams "inline" instead of "attachment" so the
+// browser can render it in a PDF viewer/iframe. Still goes through OUR
+// backend, so the frontend never has to expose the raw AWS S3 URL.
+const viewResume = asyncHandler(async (_req, res) => {
+  const profile = await findProfileDoc();
+  if (!profile || !profile.resumeUrl) {
+    return res.status(404).json({ success: false, message: 'No résumé uploaded yet.' });
+  }
+
+  const object = await getS3ObjectStream(profile.resumeUrl);
+  if (!object) {
+    return res.status(404).json({ success: false, message: 'Résumé file not found.' });
+  }
+
+  const ext = path.extname(profile.resumeUrl.split('?')[0]) || '.pdf';
+  const filename = `${(profile.name || 'Resume').replace(/\s+/g, '_')}${ext}`;
+
+  res.setHeader('Content-Type', object.contentType || 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  object.stream.pipe(res);
+});
+
 // DELETE /api/profile/resume  (protected)
 const deleteResume = asyncHandler(async (_req, res) => {
   const profile = await findProfileDoc();
@@ -123,5 +146,5 @@ const deleteResume = asyncHandler(async (_req, res) => {
 });
 
 module.exports = {
-  getProfile, updateProfile, uploadPicture, deletePicture, uploadResume, deleteResume, downloadResume,
+  getProfile, updateProfile, uploadPicture, deletePicture, uploadResume, deleteResume, downloadResume, viewResume,
 };
