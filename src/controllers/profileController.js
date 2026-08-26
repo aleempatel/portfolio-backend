@@ -1,6 +1,7 @@
+const path = require('path');
 const Profile = require('../models/Profile');
 const asyncHandler = require('../utils/asyncHandler');
-const { removeFromS3 } = require('../middleware/upload');
+const { removeFromS3, getS3ObjectStream } = require('../middleware/upload');
 
 async function findProfileDoc() {
   return Profile.findOne();
@@ -87,6 +88,28 @@ const uploadResume = asyncHandler(async (req, res) => {
   res.json({ success: true, data: profile, message: 'Résumé updated.' });
 });
 
+// GET /api/profile/resume/download  (public)
+// Streams the résumé through OUR backend instead of exposing the raw AWS S3
+// URL to the browser - the frontend should link/point to this route.
+const downloadResume = asyncHandler(async (_req, res) => {
+  const profile = await findProfileDoc();
+  if (!profile || !profile.resumeUrl) {
+    return res.status(404).json({ success: false, message: 'No résumé uploaded yet.' });
+  }
+
+  const object = await getS3ObjectStream(profile.resumeUrl);
+  if (!object) {
+    return res.status(404).json({ success: false, message: 'Résumé file not found.' });
+  }
+
+  const ext = path.extname(profile.resumeUrl.split('?')[0]) || '.pdf';
+  const filename = `${(profile.name || 'Resume').replace(/\s+/g, '_')}${ext}`;
+
+  res.setHeader('Content-Type', object.contentType || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  object.stream.pipe(res);
+});
+
 // DELETE /api/profile/resume  (protected)
 const deleteResume = asyncHandler(async (_req, res) => {
   const profile = await findProfileDoc();
@@ -99,4 +122,6 @@ const deleteResume = asyncHandler(async (_req, res) => {
   res.json({ success: true, data: profile, message: 'Résumé removed.' });
 });
 
-module.exports = { getProfile, updateProfile, uploadPicture, deletePicture, uploadResume, deleteResume };
+module.exports = {
+  getProfile, updateProfile, uploadPicture, deletePicture, uploadResume, deleteResume, downloadResume,
+};

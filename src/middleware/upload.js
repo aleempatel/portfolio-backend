@@ -2,7 +2,7 @@ const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const multerS3 = require('multer-s3');
-const { DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { s3, BUCKET } = require('../config/s3');
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
@@ -78,4 +78,17 @@ async function removeFromS3(fileUrl) {
   }
 }
 
-module.exports = { upload, uploadProjectImages, uploadResume, removeFromS3 };
+// Fetches an S3 object (as a readable stream) given its stored URL, without
+// exposing the S3 URL itself to the client. Used so the résumé can be
+// downloaded through our own backend route instead of a direct S3 link.
+// Returns null if fileUrl is empty or isn't one of our own uploads.
+async function getS3ObjectStream(fileUrl) {
+  if (!fileUrl) return null;
+  const url = new URL(fileUrl);
+  const key = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+  if (!key.startsWith('uploads/')) return null; // not one of ours - don't touch it
+  const result = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  return { stream: result.Body, contentType: result.ContentType, key };
+}
+
+module.exports = { upload, uploadProjectImages, uploadResume, removeFromS3, getS3ObjectStream };
