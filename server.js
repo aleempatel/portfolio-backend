@@ -24,7 +24,7 @@ if (process.env.NODE_ENV !== 'production') {
 // requests with no Origin header at all (curl, or the admin panel opened directly
 // as a file:// page). Set FRONTEND_URL in .env to lock this down for production.
 const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5500';
-const devOrigins = [allowedOrigin, 'http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5000', 'http://127.0.0.1:5000', 'http://localhost:8080', 'http://127.0.0.1:8080'];
+const devOrigins = [allowedOrigin, 'https://aleempatel.dev', 'https://www.aleempatel.dev', 'http://localhost:5500', 'http://127.0.0.1:5500', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5000', 'http://127.0.0.1:5000', 'http://localhost:8080', 'http://127.0.0.1:8080'];
 app.use(
   cors({
     origin: (origin, callback) => {
