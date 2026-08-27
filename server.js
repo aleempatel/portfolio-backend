@@ -38,6 +38,16 @@ app.use(
   })
 );
 
+// ---------- Robots.txt ----------
+// Allow search engines and AI crawlers to crawl the API subdomain.
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain').send(
+`User-agent: *
+Allow: /
+`
+  );
+});
+
 // ---------- API routes ----------
 // Note: no local /uploads static route - all uploads (profile picture, résumé,
 // project images) go straight to the AWS S3 bucket configured in .env, and the
